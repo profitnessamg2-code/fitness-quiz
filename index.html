@@ -252,10 +252,15 @@ async function addMembership() {
   const price = parseInt(document.getElementById('mprice').value, 10);
   const vpw = document.getElementById('mvisits').value;
   const description = document.getElementById('mdesc').value.trim();
+  const tfrom = document.getElementById('mfrom').value;
+  const tto = document.getElementById('mto').value;
   if (!name) { say('Введите название абонемента', true); return; }
   if (!price || price < 0) { say('Укажите цену', true); return; }
+  if ((tfrom && !tto) || (!tfrom && tto)) { say('Укажите время «с» и «до» или оставьте оба поля пустыми', true); return; }
+  if (tfrom && tfrom >= tto) { say('Время «до» должно быть позже времени «с»', true); return; }
   const { error } = await sb.from('memberships').insert({
-    name, price, description: description || null, visits_per_week: vpw ? parseInt(vpw, 10) : null
+    name, price, description: description || null, visits_per_week: vpw ? parseInt(vpw, 10) : null,
+    time_from: tfrom || null, time_to: tto || null
   });
   if (error) { say('Ошибка: ' + error.message, true); return; }
   await loadAll(); say('Абонемент добавлен');
@@ -362,7 +367,8 @@ function renderMemberships() {
         <strong>${esc(m.name)}</strong>
         <span class="price">${money(m.price)}</span>
       </div>
-      <div class="muted">${m.visits_per_week ? m.visits_per_week + ' раз(а) в неделю' : 'Без ограничения по посещениям'}</div>
+      <div class="muted">${m.visits_per_week ? m.visits_per_week + ' раз(а) в неделю' : 'Без ограничения по посещениям'}
+        · ${m.time_from && m.time_to ? 'с ' + hhmm(m.time_from) + ' до ' + hhmm(m.time_to) : 'в любое время'}</div>
       ${m.description ? `<div style="margin-top:6px">${esc(m.description)}</div>` : ''}
       <div class="row" style="margin-top:12px">
         <div style="flex:0 0 auto"><button class="btn ghost small" onclick="editPrice(${m.id}, ${m.price})">Изменить цену</button></div>
@@ -377,6 +383,10 @@ function renderMemberships() {
         <div style="flex:2 1 200px"><label for="mname">Название</label><input id="mname" placeholder="Например, Месяц, 3 раза в неделю"></div>
         <div><label for="mprice">Цена, ₸</label><input id="mprice" type="number" inputmode="numeric" min="0"></div>
         <div><label for="mvisits">Раз в неделю</label><input id="mvisits" type="number" inputmode="numeric" min="1" max="7" placeholder="Любое"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div><label for="mfrom">Действует с (необязательно)</label><input id="mfrom" type="time"></div>
+        <div><label for="mto">Действует до (необязательно)</label><input id="mto" type="time"></div>
       </div>
       <div style="margin-top:10px"><label for="mdesc">Описание (необязательно)</label><textarea id="mdesc" rows="2"></textarea></div>
       <div style="margin-top:12px"><button class="btn" onclick="addMembership()">Добавить абонемент</button></div>
